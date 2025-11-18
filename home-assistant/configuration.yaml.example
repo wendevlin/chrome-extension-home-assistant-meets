@@ -1,9 +1,7 @@
 # Beispiel Konfiguration für Google Meets Integration
 
+# Minimale Konfiguration - keine weiteren Einstellungen erforderlich!
 google_meets:
-  # Optional: Bridge Server URL
-  # Standard: http://localhost:8555
-  bridge_url: http://localhost:8555
 
 # Beispiel Automationen
 

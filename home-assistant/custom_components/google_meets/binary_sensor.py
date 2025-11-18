@@ -5,11 +5,10 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorDeviceClass,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from . import DOMAIN
+from . import DOMAIN, get_current_state
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,46 +20,54 @@ async def async_setup_platform(
     discovery_info=None,
 ):
     """Set up the Google Meets binary sensor platform."""
-    coordinator = hass.data[DOMAIN]["coordinator"]
-
     # Erstelle Binary Sensor für Call Status
-    async_add_entities([GoogleMeetsCallSensor(coordinator)], True)
+    async_add_entities([GoogleMeetsCallSensor(hass)], True)
 
 
-class GoogleMeetsCallSensor(CoordinatorEntity, BinarySensorEntity):
+class GoogleMeetsCallSensor(BinarySensorEntity):
     """Representation of a Google Meets Call Status Sensor."""
 
-    def __init__(self, coordinator):
+    def __init__(self, hass: HomeAssistant):
         """Initialize the sensor."""
-        super().__init__(coordinator)
+        self.hass = hass
         self._attr_name = "Google Meets Call Active"
         self._attr_unique_id = "google_meets_call_active"
         self._attr_device_class = BinarySensorDeviceClass.OCCUPANCY
 
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+
+        @callback
+        def update_state(event):
+            """Update when state changes."""
+            self.async_write_ha_state()
+
+        # Listen für Updates
+        self.async_on_remove(
+            self.hass.bus.async_listen(f"{DOMAIN}_update", update_state)
+        )
+
     @property
     def is_on(self) -> bool:
         """Return true if call is active."""
-        if self.coordinator.data is None:
-            return False
-        return self.coordinator.data.get("in_call", False)
+        state = get_current_state(self.hass)
+        return state.get("in_call", False)
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if self.coordinator.data is None:
-            return False
-        return self.coordinator.data.get("connected", False)
+        state = get_current_state(self.hass)
+        return state.get("connected", False)
 
     @property
     def extra_state_attributes(self):
         """Return additional state attributes."""
-        if self.coordinator.data is None:
-            return {}
+        state = get_current_state(self.hass)
 
         return {
-            "mic_muted": self.coordinator.data.get("mic_muted"),
-            "last_update": self.coordinator.data.get("last_update"),
-            "connected": self.coordinator.data.get("connected"),
+            "mic_muted": state.get("mic_muted"),
+            "last_update": state.get("last_update"),
+            "connected": state.get("connected"),
         }
 
     @property

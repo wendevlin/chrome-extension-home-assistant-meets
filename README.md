@@ -1,6 +1,6 @@
 # Google Meets Home Assistant Integration
 
-Eine vollständige Integration von Google Meets in Home Assistant mit Chrome Extension. Steuere dein Mikrofon in Google Meets direkt aus Home Assistant!
+Eine vollständige Integration von Google Meets in Home Assistant mit Chrome Extension. Steuere dein Mikrofon in Google Meets direkt aus Home Assistant - **OHNE** zusätzlichen Bridge Server!
 
 ## Features
 
@@ -9,21 +9,24 @@ Eine vollständige Integration von Google Meets in Home Assistant mit Chrome Ext
 - ✅ **Bidirektionale Synchronisation**: Status wird in Echtzeit synchronisiert
 - ✅ **Auto-Unavailable**: Switch ist automatisch nicht verfügbar wenn kein Call aktiv ist
 - ✅ **Multi-Tab Support**: Bei mehreren Meets Tabs wird automatisch der erste aktive verwendet
+- ✅ **Direkte Verbindung**: Extension verbindet sich direkt zur Home Assistant WebSocket API
+- ✅ **Kein Bridge Server nötig**: Einfache 2-Komponenten Architektur
 
 ## Architektur
 
-Das System besteht aus drei Komponenten:
+Das System besteht aus nur **zwei** Komponenten:
 
-1. **Chrome Extension**: Überwacht Google Meets und steuert das Mikrofon
-2. **Bridge Server**: Node.js Server der zwischen Extension und Home Assistant vermittelt
-3. **Home Assistant Integration**: Custom Component mit Sensor und Switch
+1. **Chrome Extension**: Überwacht Google Meets und sendet Status-Updates an Home Assistant
+2. **Home Assistant Integration**: Custom Component mit Sensor und Switch
 
 ```
-┌─────────────────┐         ┌──────────────┐         ┌─────────────────┐
-│ Chrome Extension│◄────────┤ Bridge Server├────────►│ Home Assistant  │
-│  (Google Meets) │WebSocket│   (Node.js)  │  HTTP   │   Integration   │
-└─────────────────┘         └──────────────┘         └─────────────────┘
+┌─────────────────┐                                  ┌─────────────────┐
+│ Chrome Extension│◄─────────────────────────────────┤ Home Assistant  │
+│  (Google Meets) │   WebSocket API (direkt!)        │   Integration   │
+└─────────────────┘                                  └─────────────────┘
 ```
+
+Die Extension verbindet sich **direkt** zur Home Assistant WebSocket API - kein Node.js Server, kein HTTP Bridge, nichts dazwischen!
 
 ## Installation
 
@@ -35,24 +38,17 @@ Das System besteht aus drei Komponenten:
 4. Klicke "Entpackte Erweiterung laden" (Load unpacked)
 5. Wähle den `chrome-extension` Ordner aus
 
-### 2. Bridge Server installieren und starten
+### 2. Extension konfigurieren
 
-```bash
-cd bridge-server
-npm install
-npm start
-```
-
-Der Server läuft nun auf `http://localhost:8555`
-
-**Optional**: Verwende PM2 für automatischen Start:
-
-```bash
-npm install -g pm2
-pm2 start index.js --name google-meets-bridge
-pm2 save
-pm2 startup
-```
+1. Klicke auf das Extension-Icon in Chrome
+2. Klicke "Details" → "Erweiterungsoptionen"
+3. Trage deine Home Assistant URL ein:
+   - Standard: `ws://homeassistant.local:8123/api/websocket`
+   - HTTPS: `wss://your-domain.com/api/websocket`
+4. Erstelle einen Long-Lived Access Token in Home Assistant:
+   - Profil → Sicherheit → Long-Lived Access Tokens
+5. Kopiere den Token in die Extension-Optionen
+6. Speichern - fertig!
 
 ### 3. Home Assistant Integration installieren
 
@@ -64,10 +60,11 @@ pm2 startup
 2. Füge in deiner `configuration.yaml` hinzu:
    ```yaml
    google_meets:
-     bridge_url: http://localhost:8555  # Optional, wenn auf anderem Host
    ```
 
 3. Starte Home Assistant neu
+
+**Das war's!** Keine weiteren Abhängigkeiten, kein Bridge Server, nichts zu installieren.
 
 ## Verwendung
 
@@ -86,6 +83,26 @@ Nach der Installation stehen folgende Entities zur Verfügung:
 - **Status**: `on` = Mikrofon aktiv, `off` = Mikrofon stumm
 - **Availability**: Nur verfügbar wenn ein Call aktiv ist
 - **Bidirektional**: Status wird automatisch synchronisiert
+
+### Services
+
+Die Integration stellt folgende Services bereit:
+
+#### `google_meets.toggle_microphone`
+Schaltet das Mikrofon um (stumm ↔ aktiv)
+
+```yaml
+service: google_meets.toggle_microphone
+```
+
+#### `google_meets.set_microphone`
+Setzt das Mikrofon auf einen spezifischen Status
+
+```yaml
+service: google_meets.set_microphone
+data:
+  muted: true  # true = stumm, false = aktiv
+```
 
 ### Automationen
 
@@ -123,25 +140,43 @@ automation:
           message: "Google Meets Call gestartet"
 ```
 
+Mehr Beispiele findest du in `home-assistant/configuration.yaml.example`
+
 ## Troubleshooting
 
 ### Chrome Extension verbindet sich nicht
 
-1. Überprüfe ob der Bridge Server läuft: `http://localhost:8555/health`
-2. Öffne die Chrome Developer Console (F12) und prüfe auf Fehler
-3. Stelle sicher dass WebSocket Verbindungen erlaubt sind
+1. Überprüfe die WebSocket URL in den Extension-Optionen
+2. Überprüfe dass der Access Token gültig ist
+3. Öffne die Chrome Developer Console (F12) und prüfe auf Fehler
+4. Stelle sicher dass WebSocket Verbindungen zu Home Assistant erlaubt sind
 
 ### Home Assistant zeigt "unavailable"
 
-1. Überprüfe ob der Bridge Server erreichbar ist
+1. Prüfe ob die Chrome Extension läuft und verbunden ist (Console Logs)
 2. Prüfe die Home Assistant Logs: `Settings > System > Logs`
-3. Stelle sicher dass die `bridge_url` korrekt konfiguriert ist
+3. Stelle sicher dass die Integration korrekt geladen wurde
 
 ### Mikrofon lässt sich nicht umschalten
 
 1. Stelle sicher dass ein Google Meets Call aktiv ist
 2. Überprüfe ob das Mikrofon-Button in Meets sichtbar ist
 3. Prüfe die Browser Console auf Fehler
+
+## Vorteile der neuen Architektur
+
+**Alte Version** (mit Bridge Server):
+- 3 Komponenten: Extension → Node.js Bridge → Home Assistant
+- Bridge Server muss laufen (Node.js, npm, PM2, etc.)
+- Zusätzliche Fehlerquelle
+- Komplexere Installation
+
+**Neue Version** (direkt):
+- 2 Komponenten: Extension ↔ Home Assistant
+- Keine zusätzlichen Services
+- Einfachere Installation
+- Weniger Fehlerquellen
+- Nutzt offizielle Home Assistant WebSocket API
 
 ## Entwicklung
 
@@ -150,20 +185,15 @@ automation:
 Die Extension besteht aus:
 - `manifest.json`: Extension Konfiguration
 - `content.js`: Script das in Google Meets Tabs läuft
-- `background.js`: Service Worker für Koordination und WebSocket Verbindung
-
-### Bridge Server
-
-Der Server stellt folgende Endpunkte bereit:
-- `GET /status`: Aktueller Status
-- `POST /toggle`: Mikrofon umschalten
-- `POST /set`: Mikrofon auf spezifischen Status setzen
-- `GET /health`: Health Check
+- `background.js`: Service Worker für WebSocket Verbindung zu Home Assistant
+- `options.html/js`: Einstellungsseite für URL und Token
 
 ### Home Assistant Integration
 
 Die Integration nutzt:
-- `DataUpdateCoordinator` für regelmäßige Status Updates (alle 2 Sekunden)
+- Event-basierte Architektur (kein Polling!)
+- `google_meets_state` Events von der Extension
+- `google_meets_command` Events an die Extension
 - `BinarySensorEntity` für Call Status
 - `SwitchEntity` für Mikrofon Steuerung
 
