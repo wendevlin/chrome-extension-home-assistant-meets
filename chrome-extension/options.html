@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Google Meets HA - Einstellungen</title>
+  <title>Google Meets HA - Settings</title>
   <style>
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -84,21 +84,21 @@
     <label for="haUrl">Home Assistant WebSocket URL</label>
     <input type="text" id="haUrl" placeholder="ws://homeassistant.local:8123/api/websocket">
     <div class="help-text">
-      Standard: <code>ws://homeassistant.local:8123/api/websocket</code><br>
-      Für HTTPS: <code>wss://your-domain.com/api/websocket</code>
+      Default: <code>ws://homeassistant.local:8123/api/websocket</code><br>
+      For HTTPS: <code>wss://your-domain.com/api/websocket</code>
     </div>
   </div>
 
   <div class="form-group">
     <label for="accessToken">Long-Lived Access Token</label>
-    <input type="password" id="accessToken" placeholder="Dein Home Assistant Access Token">
+    <input type="password" id="accessToken" placeholder="Your Home Assistant Access Token">
     <div class="help-text">
-      Erstelle ein Token in Home Assistant unter:<br>
-      Profil → Sicherheit → Long-Lived Access Tokens → Token erstellen
+      Create a token in Home Assistant under:<br>
+      Profile → Security → Long-Lived Access Tokens → Create Token
     </div>
   </div>
 
-  <button id="save">Einstellungen speichern</button>
+  <button id="save">Save Settings</button>
 
   <div id="status" class="status"></div>
 </body>

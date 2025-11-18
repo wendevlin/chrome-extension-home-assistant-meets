@@ -1,4 +1,4 @@
-"""Binary Sensor für Google Meets Call Status."""
+"""Binary Sensor for Google Meets Call Status."""
 import logging
 
 from homeassistant.components.binary_sensor import (
@@ -20,7 +20,6 @@ async def async_setup_platform(
     discovery_info=None,
 ):
     """Set up the Google Meets binary sensor platform."""
-    # Erstelle Binary Sensor für Call Status
     async_add_entities([GoogleMeetsCallSensor(hass)], True)
 
 
@@ -42,7 +41,7 @@ class GoogleMeetsCallSensor(BinarySensorEntity):
             """Update when state changes."""
             self.async_write_ha_state()
 
-        # Listen für Updates
+        # Listen for updates
         self.async_on_remove(
             self.hass.bus.async_listen(f"{DOMAIN}_update", update_state)
         )
@@ -65,9 +64,7 @@ class GoogleMeetsCallSensor(BinarySensorEntity):
         state = get_current_state(self.hass)
 
         return {
-            "mic_muted": state.get("mic_muted"),
             "last_update": state.get("last_update"),
-            "connected": state.get("connected"),
         }
 
     @property

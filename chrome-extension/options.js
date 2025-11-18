@@ -1,6 +1,6 @@
 // Options Page Script
 
-// Lade gespeicherte Einstellungen
+// Load saved settings
 async function loadSettings() {
   const stored = await chrome.storage.local.get(['haUrl', 'accessToken']);
 
@@ -13,24 +13,24 @@ async function loadSettings() {
   }
 }
 
-// Speichere Einstellungen
+// Save settings
 async function saveSettings() {
   const haUrl = document.getElementById('haUrl').value.trim();
   const accessToken = document.getElementById('accessToken').value.trim();
 
   if (!haUrl) {
-    showStatus('Bitte gib eine Home Assistant URL ein', 'error');
+    showStatus('Please enter a Home Assistant URL', 'error');
     return;
   }
 
   if (!accessToken) {
-    showStatus('Bitte gib ein Access Token ein', 'error');
+    showStatus('Please enter an Access Token', 'error');
     return;
   }
 
-  // Validiere URL Format
+  // Validate URL format
   if (!haUrl.startsWith('ws://') && !haUrl.startsWith('wss://')) {
-    showStatus('URL muss mit ws:// oder wss:// beginnen', 'error');
+    showStatus('URL must start with ws:// or wss://', 'error');
     return;
   }
 
@@ -39,7 +39,7 @@ async function saveSettings() {
     accessToken: accessToken
   });
 
-  showStatus('Einstellungen gespeichert! Extension wird neugestartet...', 'success');
+  showStatus('Settings saved! Extension will restart...', 'success');
 
   // Restart extension background script
   setTimeout(() => {
@@ -47,14 +47,14 @@ async function saveSettings() {
   }, 1000);
 }
 
-// Zeige Status-Nachricht
+// Show status message
 function showStatus(message, type) {
   const statusDiv = document.getElementById('status');
   statusDiv.textContent = message;
   statusDiv.className = `status ${type}`;
   statusDiv.style.display = 'block';
 
-  // Verstecke nach 5 Sekunden (außer bei Erfolg)
+  // Hide after 5 seconds (except for success)
   if (type !== 'success') {
     setTimeout(() => {
       statusDiv.style.display = 'none';
@@ -65,5 +65,5 @@ function showStatus(message, type) {
 // Event Listeners
 document.getElementById('save').addEventListener('click', saveSettings);
 
-// Lade Einstellungen beim Start
+// Load settings on start
 loadSettings();

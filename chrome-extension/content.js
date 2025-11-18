@@ -1,5 +1,5 @@
-// Content Script für Google Meets
-// Überwacht und steuert den Mikrofon-Status
+// Content Script for Google Meets
+// Monitors and controls microphone status
 
 let currentState = {
   inCall: false,
@@ -7,9 +7,9 @@ let currentState = {
   lastUpdate: null
 };
 
-// Funktion um zu prüfen ob wir in einem Call sind
+// Function to check if we are in a call
 function isInCall() {
-  // Google Meets zeigt spezifische Elemente wenn ein Call aktiv ist
+  // Google Meets shows specific elements when a call is active
   const callElements = document.querySelector('[data-call-ended]');
   const participantElements = document.querySelector('[data-participant-id]');
   const leaveButton = document.querySelector('[aria-label*="Anruf verlassen"], [aria-label*="Leave call"]');
@@ -17,10 +17,10 @@ function isInCall() {
   return !callElements && (participantElements !== null || leaveButton !== null);
 }
 
-// Funktion um den Mikrofon-Status zu ermitteln
+// Function to determine microphone status
 function getMicStatus() {
-  // Suche nach dem Mikrofon-Button
-  // Google Meets verwendet verschiedene aria-labels je nach Sprache
+  // Search for the microphone button
+  // Google Meets uses different aria-labels depending on language
   const micButton = document.querySelector(
     '[aria-label*="Mikrofon"], [aria-label*="microphone"], ' +
     '[aria-label*="Mikrofon aus"], [aria-label*="Turn off microphone"], ' +
@@ -32,14 +32,14 @@ function getMicStatus() {
     return null;
   }
 
-  // Prüfe ob das Mikrofon stumm ist
-  // Wenn "Turn on" oder "einschalten" im Label steht, ist es stumm
+  // Check if microphone is muted
+  // If "Turn on" or "einschalten" is in the label, it's muted
   const ariaLabel = micButton.getAttribute('aria-label') || '';
   const isMuted = ariaLabel.toLowerCase().includes('turn on') ||
                   ariaLabel.toLowerCase().includes('einschalten') ||
                   ariaLabel.toLowerCase().includes('ein ');
 
-  // Alternative: Prüfe das data-is-muted Attribut falls vorhanden
+  // Alternative: Check data-is-muted attribute if available
   const dataMuted = micButton.getAttribute('data-is-muted');
   if (dataMuted !== null) {
     return dataMuted === 'true';
@@ -48,7 +48,7 @@ function getMicStatus() {
   return isMuted;
 }
 
-// Funktion um das Mikrofon umzuschalten
+// Function to toggle microphone
 function toggleMic() {
   const micButton = document.querySelector(
     '[aria-label*="Mikrofon"], [aria-label*="microphone"], ' +
@@ -58,17 +58,17 @@ function toggleMic() {
 
   if (micButton) {
     micButton.click();
-    console.log('Mikrofon umgeschaltet');
-    // Warte kurz und aktualisiere den Status
+    console.log('Microphone toggled');
+    // Wait briefly and update status
     setTimeout(updateState, 300);
     return true;
   }
 
-  console.log('Mikrofon-Button nicht gefunden');
+  console.log('Microphone button not found');
   return false;
 }
 
-// Status aktualisieren und an Background Script senden
+// Update status and send to Background Script
 function updateState() {
   const inCall = isInCall();
   const micMuted = inCall ? getMicStatus() : null;
@@ -80,7 +80,7 @@ function updateState() {
     url: window.location.href
   };
 
-  // Nur senden wenn sich etwas geändert hat
+  // Only send if something changed
   if (JSON.stringify(newState) !== JSON.stringify(currentState)) {
     currentState = newState;
     chrome.runtime.sendMessage({
@@ -91,9 +91,9 @@ function updateState() {
   }
 }
 
-// Listener für Messages vom Background Script
+// Listener for messages from Background Script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message empfangen:', message);
+  console.log('Message received:', message);
 
   if (message.type === 'GET_STATE') {
     updateState();
@@ -111,7 +111,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const currentMuted = getMicStatus();
     const targetMuted = message.muted;
 
-    // Nur umschalten wenn der aktuelle Status anders ist als gewünscht
+    // Only toggle if current status differs from desired state
     if (currentMuted !== null && currentMuted !== targetMuted) {
       const success = toggleMic();
       sendResponse({ success: success });
@@ -122,12 +122,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Observer für DOM-Änderungen (wenn UI sich aktualisiert)
+// Observer for DOM changes (when UI updates)
 const observer = new MutationObserver(() => {
   updateState();
 });
 
-// Beobachte das DOM für Änderungen
+// Observe DOM for changes
 observer.observe(document.body, {
   childList: true,
   subtree: true,
@@ -135,10 +135,10 @@ observer.observe(document.body, {
   attributeFilter: ['aria-label', 'data-is-muted']
 });
 
-// Initiales Update nach 2 Sekunden (damit die Seite Zeit zum Laden hat)
+// Initial update after 2 seconds (to give page time to load)
 setTimeout(updateState, 2000);
 
-// Regelmäßige Updates alle 5 Sekunden als Fallback
+// Regular updates every 5 seconds as fallback
 setInterval(updateState, 5000);
 
-console.log('Google Meets Home Assistant Integration geladen');
+console.log('Google Meets Home Assistant Integration loaded');

@@ -1,4 +1,4 @@
-"""Switch für Google Meets Mikrofon Steuerung."""
+"""Switch for Google Meets Microphone Control."""
 import logging
 
 from homeassistant.components.switch import SwitchEntity
@@ -17,7 +17,6 @@ async def async_setup_platform(
     discovery_info=None,
 ):
     """Set up the Google Meets switch platform."""
-    # Erstelle Switch für Mikrofon
     async_add_entities([GoogleMeetsMicrophoneSwitch(hass)], True)
 
 
@@ -38,7 +37,7 @@ class GoogleMeetsMicrophoneSwitch(SwitchEntity):
             """Update when state changes."""
             self.async_write_ha_state()
 
-        # Listen für Updates
+        # Listen for updates
         self.async_on_remove(
             self.hass.bus.async_listen(f"{DOMAIN}_update", update_state)
         )
@@ -48,17 +47,17 @@ class GoogleMeetsMicrophoneSwitch(SwitchEntity):
         """Return true if microphone is unmuted (ON = unmuted, OFF = muted)."""
         state = get_current_state(self.hass)
 
-        # Switch ist ON wenn Mikrofon NICHT stumm ist
+        # Switch is ON when microphone is NOT muted
         return not state.get("mic_muted", True)
 
     @property
     def available(self) -> bool:
-        """Return True if entity is available (nur wenn Call aktiv und verbunden)."""
+        """Return True if entity is available (only when call active and connected)."""
         state = get_current_state(self.hass)
 
-        # Switch ist nur verfügbar wenn:
-        # 1. Verbindung zur Extension besteht
-        # 2. Ein Call aktiv ist
+        # Switch is only available when:
+        # 1. Connection to extension exists
+        # 2. A call is active
         connected = state.get("connected", False)
         in_call = state.get("in_call", False)
 
@@ -85,14 +84,3 @@ class GoogleMeetsMicrophoneSwitch(SwitchEntity):
         if self.is_on:
             return "mdi:microphone"
         return "mdi:microphone-off"
-
-    @property
-    def extra_state_attributes(self):
-        """Return additional state attributes."""
-        state = get_current_state(self.hass)
-
-        return {
-            "in_call": state.get("in_call"),
-            "muted": state.get("mic_muted"),
-            "last_update": state.get("last_update"),
-        }

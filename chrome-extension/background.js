@@ -12,30 +12,30 @@ let reconnectInterval = null;
 let authenticated = false;
 let messageId = 1;
 
-// Konfiguration - wird aus Storage geladen
+// Configuration - loaded from storage
 let config = {
   haUrl: 'ws://homeassistant.local:8123/api/websocket',
   accessToken: null
 };
 
-// Lade Konfiguration aus Storage
+// Load configuration from storage
 async function loadConfig() {
   const stored = await chrome.storage.local.get(['haUrl', 'accessToken']);
   if (stored.haUrl) config.haUrl = stored.haUrl;
   if (stored.accessToken) config.accessToken = stored.accessToken;
 
-  console.log('Konfiguration geladen:', { haUrl: config.haUrl, hasToken: !!config.accessToken });
+  console.log('Configuration loaded:', { haUrl: config.haUrl, hasToken: !!config.accessToken });
 }
 
-// WebSocket Verbindung zu Home Assistant
+// WebSocket connection to Home Assistant
 async function connectToHomeAssistant() {
   if (!config.accessToken) {
-    console.warn('⚠️ Kein Access Token konfiguriert. Bitte in Extension-Optionen eintragen.');
+    console.warn('⚠️ No access token configured. Please set it in extension options.');
     return;
   }
 
   if (ws && ws.readyState === WebSocket.OPEN) {
-    console.log('WebSocket bereits verbunden');
+    console.log('WebSocket already connected');
     return;
   }
 
@@ -53,28 +53,28 @@ async function connectToHomeAssistant() {
     };
 
     ws.onerror = (error) => {
-      console.error('WebSocket Fehler:', error);
+      console.error('WebSocket Error:', error);
     };
 
     ws.onclose = () => {
-      console.log('❌ Verbindung zu Home Assistant getrennt');
+      console.log('❌ Connection to Home Assistant lost');
       ws = null;
       authenticated = false;
 
-      // Versuche Reconnect
+      // Attempt reconnect
       if (!reconnectInterval) {
         reconnectInterval = setInterval(() => {
-          console.log('Versuche Reconnect...');
+          console.log('Attempting reconnect...');
           connectToHomeAssistant();
         }, 5000);
       }
     };
   } catch (e) {
-    console.error('Fehler beim Verbinden:', e);
+    console.error('Error connecting:', e);
   }
 }
 
-// Behandle Messages von Home Assistant
+// Handle messages from Home Assistant
 async function handleHomeAssistantMessage(message) {
   console.log('HA Message:', message);
 
@@ -88,34 +88,34 @@ async function handleHomeAssistantMessage(message) {
 
   // Auth OK
   if (message.type === 'auth_ok') {
-    console.log('✅ Authentifizierung erfolgreich');
+    console.log('✅ Authentication successful');
     authenticated = true;
 
-    // Stoppe Reconnect Versuche
+    // Stop reconnect attempts
     if (reconnectInterval) {
       clearInterval(reconnectInterval);
       reconnectInterval = null;
     }
 
-    // Sende initialen Status
+    // Send initial status
     await refreshState();
     sendStateToHomeAssistant();
 
-    // Abonniere Service Calls
+    // Subscribe to service calls
     subscribeToServiceCalls();
   }
 
   // Auth Failed
   if (message.type === 'auth_invalid') {
-    console.error('❌ Authentifizierung fehlgeschlagen! Prüfe Access Token.');
+    console.error('❌ Authentication failed! Check access token.');
     ws.close();
   }
 
-  // Event (Service Call von HA)
+  // Event (Service Call from HA)
   if (message.type === 'event') {
     const eventData = message.event;
 
-    // Service Call für Mikrofon Toggle
+    // Service call for microphone toggle
     if (eventData.event_type === 'google_meets_command') {
       const command = eventData.data.command;
 
@@ -130,7 +130,7 @@ async function handleHomeAssistantMessage(message) {
   }
 }
 
-// Sende Message an Home Assistant
+// Send message to Home Assistant
 function sendToHomeAssistant(message) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     if (!message.id && message.type !== 'auth') {
@@ -140,7 +140,7 @@ function sendToHomeAssistant(message) {
   }
 }
 
-// Abonniere Service Calls
+// Subscribe to service calls
 function subscribeToServiceCalls() {
   sendToHomeAssistant({
     type: 'subscribe_events',
@@ -148,11 +148,11 @@ function subscribeToServiceCalls() {
   });
 }
 
-// Sende aktuellen Status an Home Assistant
+// Send current status to Home Assistant
 function sendStateToHomeAssistant() {
   if (!authenticated) return;
 
-  // Sende als Custom Event
+  // Send as custom event
   sendToHomeAssistant({
     type: 'fire_event',
     event_type: 'google_meets_state',
@@ -164,7 +164,7 @@ function sendStateToHomeAssistant() {
   });
 }
 
-// Speichere den aktuellen Status
+// Store current status
 function updateCurrentState(state, tabId) {
   currentState = {
     ...state,
@@ -172,15 +172,15 @@ function updateCurrentState(state, tabId) {
   };
   console.log('Current state updated:', currentState);
 
-  // Sende Update an Home Assistant
+  // Send update to Home Assistant
   sendStateToHomeAssistant();
 }
 
-// Finde den ersten aktiven Google Meets Tab
+// Find first active Google Meets tab
 async function findActiveMeetsTab() {
   const tabs = await chrome.tabs.query({ url: 'https://meet.google.com/*' });
 
-  // Priorisiere Tabs wo ein Call aktiv ist
+  // Prioritize tabs where a call is active
   for (const tab of tabs) {
     try {
       const response = await chrome.tabs.sendMessage(tab.id, { type: 'GET_STATE' });
@@ -188,20 +188,20 @@ async function findActiveMeetsTab() {
         return tab;
       }
     } catch (e) {
-      // Tab antwortet nicht, überspringen
+      // Tab not responding, skip
     }
   }
 
-  // Fallback: Erster Google Meets Tab
+  // Fallback: First Google Meets tab
   return tabs[0] || null;
 }
 
-// Hole den aktuellen Status vom aktiven Tab
+// Get current status from active tab
 async function refreshState() {
   const tab = await findActiveMeetsTab();
 
   if (!tab) {
-    // Kein Meets Tab gefunden
+    // No Meets tab found
     currentState = {
       inCall: false,
       micMuted: false,
@@ -217,13 +217,13 @@ async function refreshState() {
       updateCurrentState(response.state, tab.id);
     }
   } catch (e) {
-    console.error('Fehler beim Abrufen des Status:', e);
+    console.error('Error fetching status:', e);
   }
 
   return currentState;
 }
 
-// Mikrofon umschalten
+// Toggle microphone
 async function toggleMic() {
   const tab = await findActiveMeetsTab();
 
@@ -233,16 +233,16 @@ async function toggleMic() {
 
   try {
     const response = await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_MIC' });
-    // Aktualisiere den Status nach kurzer Verzögerung
+    // Update status after brief delay
     setTimeout(refreshState, 500);
     return response;
   } catch (e) {
-    console.error('Fehler beim Umschalten des Mikrofons:', e);
+    console.error('Error toggling microphone:', e);
     return { success: false, error: e.message };
   }
 }
 
-// Mikrofon auf spezifischen Status setzen
+// Set microphone to specific status
 async function setMic(muted) {
   const tab = await findActiveMeetsTab();
 
@@ -255,16 +255,16 @@ async function setMic(muted) {
       type: 'SET_MIC',
       muted: muted
     });
-    // Aktualisiere den Status nach kurzer Verzögerung
+    // Update status after brief delay
     setTimeout(refreshState, 500);
     return response;
   } catch (e) {
-    console.error('Fehler beim Setzen des Mikrofons:', e);
+    console.error('Error setting microphone:', e);
     return { success: false, error: e.message };
   }
 }
 
-// Listener für Messages von Content Scripts
+// Listener for messages from Content Scripts
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Background received message:', message);
 
@@ -275,7 +275,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Listener für Messages von externen Quellen (für API-Kompatibilität)
+// Listener for messages from external sources (for API compatibility)
 chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => {
   console.log('External message received:', message);
 
@@ -304,22 +304,22 @@ chrome.runtime.onMessageExternal.addListener((message, sender, sendResponse) => 
   return false;
 });
 
-// Initialisierung
+// Initialization
 async function initialize() {
-  console.log('Google Meets Home Assistant Extension gestartet');
+  console.log('Google Meets Home Assistant Extension started');
 
-  // Lade Konfiguration
+  // Load configuration
   await loadConfig();
 
-  // Verbinde mit Home Assistant
+  // Connect to Home Assistant
   connectToHomeAssistant();
 
-  // Regelmäßiges Refresh alle 5 Sekunden
+  // Regular refresh every 5 seconds
   setInterval(async () => {
     await refreshState();
     sendStateToHomeAssistant();
   }, 5000);
 }
 
-// Starte Initialisierung
+// Start initialization
 initialize();

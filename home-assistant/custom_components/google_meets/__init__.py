@@ -15,7 +15,7 @@ PLATFORMS = [Platform.BINARY_SENSOR, Platform.SWITCH]
 EVENT_STATE_UPDATE = "google_meets_state"
 EVENT_COMMAND = "google_meets_command"
 
-# Timeout für "connected" Status (wenn seit X Sekunden kein Update)
+# Timeout for "connected" status (if no update received for X seconds)
 CONNECTION_TIMEOUT = timedelta(seconds=15)
 
 
@@ -23,7 +23,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Google Meets component."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Initialer Status
+    # Initial state
     hass.data[DOMAIN]["state"] = {
         "in_call": False,
         "mic_muted": False,
@@ -31,27 +31,27 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         "connected": False,
     }
 
-    # Event Listener für Status Updates von der Chrome Extension
+    # Event listener for status updates from Chrome Extension
     @callback
     def handle_state_update(event: Event):
         """Handle state update from Chrome Extension."""
         data = event.data
         _LOGGER.debug(f"Received state update: {data}")
 
-        # Update Status
+        # Update state
         hass.data[DOMAIN]["state"] = {
             "in_call": data.get("in_call", False),
             "mic_muted": data.get("mic_muted", False),
             "last_update": datetime.now(),
-            "connected": True,  # Wenn wir ein Update erhalten, ist die Extension verbunden
+            "connected": True,  # If we receive an update, the extension is connected
         }
 
-        # Trigger Update für alle Entities
+        # Trigger update for all entities
         hass.bus.async_fire(f"{DOMAIN}_update")
 
     hass.bus.async_listen(EVENT_STATE_UPDATE, handle_state_update)
 
-    # Periodisch prüfen ob die Verbindung noch aktiv ist
+    # Periodically check if connection is still alive
     @callback
     def check_connection(now):
         """Check if connection is still alive."""
@@ -65,10 +65,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                 hass.data[DOMAIN]["state"]["mic_muted"] = False
                 hass.bus.async_fire(f"{DOMAIN}_update")
 
-    # Prüfe Connection alle 10 Sekunden
+    # Check connection every 10 seconds
     async_track_time_interval(hass, check_connection, timedelta(seconds=10))
 
-    # Registriere Service für Mikrofon Toggle
+    # Register service for microphone toggle
     async def async_toggle_microphone(call):
         """Service to toggle microphone."""
         _LOGGER.info("Toggle microphone service called")
@@ -76,7 +76,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     hass.services.async_register(DOMAIN, "toggle_microphone", async_toggle_microphone)
 
-    # Registriere Service für Mikrofon Set
+    # Register service for microphone set
     async def async_set_microphone(call):
         """Service to set microphone state."""
         muted = call.data.get("muted", True)
@@ -85,7 +85,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     hass.services.async_register(DOMAIN, "set_microphone", async_set_microphone)
 
-    # Lade Plattformen
+    # Load platforms
     for platform in PLATFORMS:
         hass.async_create_task(
             hass.helpers.discovery.async_load_platform(platform, DOMAIN, {}, config)

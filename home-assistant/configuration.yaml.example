@@ -1,12 +1,12 @@
-# Beispiel Konfiguration für Google Meets Integration
+# Example Configuration for Google Meets Integration
 
-# Minimale Konfiguration - keine weiteren Einstellungen erforderlich!
+# Minimal configuration - no additional settings required!
 google_meets:
 
-# Beispiel Automationen
+# Example Automations
 
 automation:
-  # Mikrofon stumm schalten wenn jemand an der Tür klingelt
+  # Mute microphone when doorbell rings
   - alias: "Google Meets - Mute on Doorbell"
     trigger:
       - platform: state
@@ -21,7 +21,7 @@ automation:
         target:
           entity_id: switch.google_meets_microphone
 
-  # Benachrichtigung wenn ein Call startet
+  # Notification when call starts
   - alias: "Google Meets - Notify on Call Start"
     trigger:
       - platform: state
@@ -30,10 +30,10 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          message: "Google Meets Call gestartet"
+          message: "Google Meets Call started"
           title: "Video Call"
 
-  # Benachrichtigung wenn ein Call endet
+  # Notification when call ends
   - alias: "Google Meets - Notify on Call End"
     trigger:
       - platform: state
@@ -42,9 +42,9 @@ automation:
     action:
       - service: notify.mobile_app
         data:
-          message: "Google Meets Call beendet"
+          message: "Google Meets Call ended"
 
-  # Mikrofon automatisch aktivieren bei Call Start
+  # Automatically unmute microphone on call start
   - alias: "Google Meets - Unmute on Call Start"
     trigger:
       - platform: state
@@ -57,7 +57,7 @@ automation:
         target:
           entity_id: switch.google_meets_microphone
 
-  # Lichter dimmen während eines Calls
+  # Dim lights during a call
   - alias: "Google Meets - Dim Lights During Call"
     trigger:
       - platform: state
@@ -70,7 +70,7 @@ automation:
         data:
           brightness_pct: 50
 
-  # Lichter zurück auf normal nach Call
+  # Restore lights to normal after call
   - alias: "Google Meets - Restore Lights After Call"
     trigger:
       - platform: state
